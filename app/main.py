@@ -1,27 +1,63 @@
+import asyncio
+import logging
+
 from fastapi import FastAPI, HTTPException, status
-from app.schemas import MemoParseRequest, ScheduleMetadata
+
 from app.chain import memo_analysis_chain
+from app.schemas import MemoParseRequest, ScheduleMetadata
+
+
+logger = logging.getLogger("doquest-ai")
+
 
 app = FastAPI(
     title="DoQuest AI Engine",
-    description="비정형 메모 시계열 파싱 및 RAG 지능형 일정 추천 API",
+    description="비정형 메모 일정 파싱 API",
     version="0.1.0"
 )
 
-# 비동기 LCEL 체인 호출 래퍼 함수 (Mocking 타겟)
-async def invoke_memo_chain(content: str) -> dict:
-    return await memo_analysis_chain.ainvoke({"memo_content": content})
 
 @app.get("/health", status_code=status.HTTP_200_OK)
 async def health_check():
-    return {"status": "UP", "service": "doquest-ai"}
+    return {
+        "status": "UP",
+        "service": "doquest-ai"
+    }
 
-@app.post("/api/v1/ai/parse-memo", response_model=ScheduleMetadata, status_code=status.HTTP_200_OK)
-async def parse_memo(request: MemoParseRequest):
+
+@app.post(
+    "/api/v1/ai/parse-memo",
+    response_model=ScheduleMetadata,
+    status_code=status.HTTP_200_OK
+)
+async def parse_memo(
+    request: MemoParseRequest
+) -> ScheduleMetadata:
     try:
-        result = await invoke_memo_chain(request.content)
-        return result
+        return await asyncio.wait_for(
+            memo_analysis_chain.ainvoke(
+                {"memo_content": request.content}
+            ),
+            timeout=30.0
+        )
+
+    except asyncio.TimeoutError:
+        logger.error(
+            "[Timeout] LLM 추론 시간 초과: memo_id=%s",
+            request.memo_id
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="LLM 추론 처리 시간 초과"
+        )
+
     except Exception as e:
+        logger.exception(
+            "[AI Chain Error] memo_id=%s",
+            request.memo_id
+        )
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"AI 파이프라인 분석 실패: {str(e)}"
