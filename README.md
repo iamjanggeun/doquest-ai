@@ -4,7 +4,7 @@
 | :--- | :--- | :--- | :--- |
 | 2026.08.17 | v0.1.0 | FastAPI 및 LangChain 기반 AI 파이프라인 초기 환경 구축 (.venv, .gitignore, Git 리포지토리 연동) | Janggeun |
 | 2026.08.24 | v0.2.0 | FastAPI <-> Spring E2E 테스트 메모 파싱 성공 | Janggeun |
-| 2026.08.27 | v0.2.1 | GeminiAPI 이슈 발생으로 LLM Provider 변경 (Gemini -> OpenAI | Janggeun |
+| 2026.08.27 | v0.2.1 | GeminiAPI 이슈 발생으로 LLM Provider 변경 (Gemini -> OpenAI) | Janggeun |
 
 ---
 
