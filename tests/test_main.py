@@ -1,8 +1,11 @@
 from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
+import pytest
 
 from app.main import app
+from app.schemas import ScheduleMetadata
 
 
 client = TestClient(app)
@@ -24,6 +27,7 @@ def test_parse_memo_success(mock_chain):
         "is_schedule": True,
         "title": "알고리즘 문제 풀이",
         "scheduled_at": "2026-08-18",
+        "scheduled_time": "19:30",
         "location": None,
         "summary_info": "백준 골드 DP 문제 풀이 연습",
         "action_links": []
@@ -47,6 +51,7 @@ def test_parse_memo_success(mock_chain):
     assert data["is_schedule"] is True
     assert data["title"] == "알고리즘 문제 풀이"
     assert data["scheduled_at"] == "2026-08-18"
+    assert data["scheduled_time"] == "19:30"
     assert data["location"] is None
     assert data["summary_info"] == "백준 골드 DP 문제 풀이 연습"
     assert data["action_links"] == []
@@ -67,3 +72,16 @@ def test_parse_memo_validation_failure():
     )
 
     assert response.status_code == 422
+
+
+def test_schedule_metadata_rejects_invalid_scheduled_time():
+    with pytest.raises(ValidationError):
+        ScheduleMetadata(
+            is_schedule=True,
+            title="스터디",
+            scheduled_at="2026-08-31",
+            scheduled_time="오후 7시",
+            location=None,
+            summary_info=None,
+            action_links=[]
+        )

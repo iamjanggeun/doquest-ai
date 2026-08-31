@@ -38,7 +38,7 @@ DoQuest Spring Boot 서버와 연동되어 사용자의 비정형 메모에서 �
 [Spring Boot: Memo parsing status update]
 ```
 
-Spring은 AI 응답을 받은 뒤 현재 `Memo.isParsed` 상태를 갱신합니다. AI 분석 결과 저장·조회와 사용자 확인 후 Schedule을 생성하는 전체 Two-Phase 흐름은 다음 개발 단계입니다.
+Spring은 AI 응답을 분석 후보로 저장하고, 사용자가 확인하면 Schedule을 생성하는 Two-Phase 흐름을 담당합니다.
 
 ## Technology Stack
 
@@ -81,7 +81,7 @@ Content-Type: application/json
 {
   "memo_id": 12,
   "member_id": 1,
-  "content": "이번 주 금요일 서울 스터디카페에서 스프링 시큐리티 정리하기"
+  "content": "이번 주 금요일 오후 7시 서울 스터디카페에서 스프링 시큐리티 정리하기"
 }
 ```
 
@@ -92,18 +92,19 @@ Content-Type: application/json
   "is_schedule": true,
   "title": "스프링 시큐리티 정리",
   "scheduled_at": "2026-08-28",
+  "scheduled_time": "19:00",
   "location": "서울 스터디카페",
   "summary_info": "스프링 시큐리티의 인증·인가 구조 정리",
   "action_links": []
 }
 ```
 
-`scheduled_at`은 `YYYY-MM-DD` 형식이며 날짜를 판단할 수 없으면 `null`입니다. RAG가 구현되기 전까지 `action_links`는 빈 배열을 반환합니다.
+`scheduled_at`은 `YYYY-MM-DD`, `scheduled_time`은 24시간제 `HH:mm` 형식입니다. 날짜나 시간을 판단할 수 없으면 각각 `null`이며, 시간이 없는 마감 일정에는 임의 시간을 만들지 않습니다. RAG가 구현되기 전까지 `action_links`는 빈 배열을 반환합니다.
 
 ## Processing Flow
 
 1. Pydantic이 `memo_id`, `member_id`, `content` 요청을 검증합니다.
-2. KST 기준 오늘 날짜를 프롬프트에 주입합니다.
+2. KST 기준 현재 날짜와 시간을 프롬프트에 주입해 `내일`, `2시간 뒤` 같은 상대 표현을 계산합니다.
 3. LangChain LCEL이 메모와 프롬프트를 OpenAI 모델에 전달합니다.
 4. `with_structured_output(ScheduleMetadata, method="json_schema")`로 응답 구조를 제한합니다.
 5. 호출이 30초를 초과하면 `504 Gateway Timeout`을 반환합니다.

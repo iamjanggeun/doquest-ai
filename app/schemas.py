@@ -28,6 +28,11 @@ class ScheduleMetadata(BaseModel):
         default=None,
         description="일정 날짜. YYYY-MM-DD 형식이며 날짜가 없으면 null"
     )
+    scheduled_time: Optional[str] = Field(
+        default=None,
+        pattern=r"^([01]\d|2[0-3]):[0-5]\d$",
+        description="일정 시작 시간. 24시간제 HH:mm 형식이며 시간이 없으면 null"
+    )
     location: Optional[str] = Field(
         default=None,
         description="장소 정보. 없으면 null"
